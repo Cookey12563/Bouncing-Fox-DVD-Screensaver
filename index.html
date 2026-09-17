@@ -14,6 +14,7 @@
       min-height: 240px;
       margin: 0;
       overflow: hidden;
+      cursor: none;
       background: #000;
     }
     body { font-family: system-ui, sans-serif; }
@@ -23,6 +24,7 @@
       min-width: 320px;
       min-height: 240px;
       overflow: hidden;
+      cursor: none;
       background: #000;
     }
     #fox {
@@ -36,6 +38,7 @@
       font-size: clamp(48px, 9.9vmin, 103px);
       line-height: 1;
       user-select: none;
+      pointer-events: none;
       will-change: transform;
     }
   </style>
@@ -44,7 +47,6 @@
   <main id="stage" aria-label="A fox emoji bouncing around the screen">
     <div id="fox" role="img" aria-label="fox">🦊</div>
   </main>
-
   <script>
     (() => {
       const stage = document.getElementById('stage');
@@ -53,7 +55,6 @@
       let x = 24, y = 24;
       let vx = speed, vy = speed * 0.72;
       let last = performance.now();
-
       function bounds() {
         return { width: stage.clientWidth, height: stage.clientHeight, foxWidth: fox.offsetWidth, foxHeight: fox.offsetHeight };
       }
