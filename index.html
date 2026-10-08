@@ -1,57 +1,61 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#25282b" />
-    <link
-      rel="icon"
-      href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🦊</text></svg>"
-    />
-    <title>SCREEN SAVER</title>
-
-    <style>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#25282b" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🦊</text></svg>" />
+  <title>SCREEN SAVER</title>
+  <style>
     :root { color-scheme: dark; }
     * { box-sizing: border-box; }
     html, body {
-      width: 100%;
-      height: 100%;
-      min-width: 320px;
-      min-height: 240px;
-      margin: 0;
-      overflow: hidden;
-      cursor: none;
-      background: #000;
+      width: 100%; height: 100%; margin: 0;
+      overflow: hidden; cursor: none; background: #000;
     }
     body { font-family: system-ui, sans-serif; }
     #stage {
-      position: fixed;
-      inset: 0;
-      min-width: 320px;
-      min-height: 240px;
-      overflow: hidden;
-      cursor: none;
-      background: #000;
+      position: fixed; inset: 0; overflow: hidden; cursor: none;
+      background: #000 url("Background.png") center / cover no-repeat;
     }
     #fox {
-      position: absolute;
-      left: 0;
-      top: 0;
-      width: clamp(57px, 12.1vmin, 123px);
-      height: clamp(57px, 12.1vmin, 123px);
-      display: grid;
-      place-items: center;
+      --fox-size: clamp(57px, 12.1vmin, 123px);
+      position: absolute; left: 0; top: 0;
+      width: calc(var(--fox-size) + 16px);
+      height: calc(var(--fox-size) + 16px);
+      user-select: none; pointer-events: none;
+      will-change: transform;
+    }
+    .fox-layer {
+      position: absolute; left: 8px; top: 8px;
+      width: var(--fox-size); height: var(--fox-size);
+      display: grid; place-items: center;
       font-size: clamp(48px, 9.9vmin, 103px);
       line-height: 1;
-      user-select: none;
-      pointer-events: none;
-      will-change: transform;
+    }
+    .fox-outline { z-index: 0; filter: url("#black-outline"); }
+    .fox-original { z-index: 1; }
+    .filter-definitions {
+      position: absolute; width: 0; height: 0;
+      overflow: hidden; pointer-events: none;
     }
   </style>
 </head>
 <body>
-  <main id="stage" aria-label="A fox emoji bouncing around the screen">
-    <div id="fox" role="img" aria-label="fox">🦊</div>
+  <svg class="filter-definitions" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <defs>
+      <filter id="black-outline" x="-50%" y="-50%" width="200%" height="200%" color-interpolation-filters="sRGB">
+        <feMorphology in="SourceAlpha" operator="dilate" radius="8" result="expanded" />
+        <feFlood flood-color="#000000" flood-opacity="1" result="black" />
+        <feComposite in="black" in2="expanded" operator="in" />
+      </filter>
+    </defs>
+  </svg>
+  <main id="stage" aria-label="A fox emoji with a black outline bouncing over a background image">
+    <div id="fox" role="img" aria-label="fox">
+      <span class="fox-layer fox-outline" aria-hidden="true">🦊</span>
+      <span class="fox-layer fox-original" aria-hidden="true">🦊</span>
+    </div>
   </main>
   <script>
     (() => {
@@ -62,29 +66,35 @@
       let vx = speed, vy = speed * 0.72;
       let last = performance.now();
       function bounds() {
-        return { width: stage.clientWidth, height: stage.clientHeight, foxWidth: fox.offsetWidth, foxHeight: fox.offsetHeight };
+        return {
+          maxX: Math.max(0, stage.clientWidth - fox.offsetWidth),
+          maxY: Math.max(0, stage.clientHeight - fox.offsetHeight)
+        };
       }
       function keepInBounds() {
-        const b = bounds();
-        x = Math.min(Math.max(x, 0), Math.max(0, b.width - b.foxWidth));
-        y = Math.min(Math.max(y, 0), Math.max(0, b.height - b.foxHeight));
+        const { maxX, maxY } = bounds();
+        x = Math.min(Math.max(x, 0), maxX);
+        y = Math.min(Math.max(y, 0), maxY);
+        fox.style.transform = `translate3d(${x}px, ${y}px, 0)`;
       }
       function frame(now) {
         const dt = Math.min((now - last) / 1000, 0.05);
         last = now;
-        const b = bounds();
-        const maxX = Math.max(0, b.width - b.foxWidth);
-        const maxY = Math.max(0, b.height - b.foxHeight);
-        x += vx * dt;
-        y += vy * dt;
-        while (x < 0 || x > maxX) {
-          x = x < 0 ? -x : 2 * maxX - x;
-          vx = -vx;
-        }
-        while (y < 0 || y > maxY) {
-          y = y < 0 ? -y : 2 * maxY - y;
-          vy = -vy;
-        }
+        const { maxX, maxY } = bounds();
+        if (maxX > 0) {
+          x += vx * dt;
+          while (x < 0 || x > maxX) {
+            x = x < 0 ? -x : 2 * maxX - x;
+            vx = -vx;
+          }
+        } else { x = 0; }
+        if (maxY > 0) {
+          y += vy * dt;
+          while (y < 0 || y > maxY) {
+            y = y < 0 ? -y : 2 * maxY - y;
+            vy = -vy;
+          }
+        } else { y = 0; }
         fox.style.transform = `translate3d(${x}px, ${y}px, 0)`;
         requestAnimationFrame(frame);
       }
